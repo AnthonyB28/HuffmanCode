@@ -40,4 +40,6 @@ Icon
 .AppleDesktop
 Network Trash Folder
 Temporary Items
+out/
+.idea/
 .apdisk
