@@ -4,7 +4,9 @@
  * @author Anthony Barranco
  */
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,7 +42,7 @@ public class Decode{
      */
     public static void main(String[] args) throws IOException {
         byte[] input = ReadFile("src//binaryXYEOF");
-        DecodeToFile("", input);
+        DecodeToFile("test//output.txt", input);
         if(args.length == 2)
         {
             byte[] input2 = ReadFile(args[0]);
@@ -58,7 +60,7 @@ public class Decode{
         return Files.readAllBytes(p);
     }
 
-    static void DecodeToFile(String path, byte[] binary)
+    static void DecodeToFile(String outputFilePath, byte[] binary) throws IOException
     {
         TreeNode root = new TreeNode(true);
         int numberOfChars = binary[0];
@@ -143,6 +145,9 @@ public class Decode{
         }
         decodedMsg = GetDecodedMessage(root, data);
         System.out.println(decodedMsg);
+        PrintWriter writer = new PrintWriter(outputFilePath, "UTF-8");
+        writer.print(decodedMsg);
+        writer.close();
     }
 
     static String GetDecodedMessage(TreeNode root, int[] directions)
