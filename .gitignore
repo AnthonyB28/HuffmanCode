@@ -43,3 +43,6 @@ Temporary Items
 out/
 .idea/
 .apdisk
+
+*.bak
+*.iml

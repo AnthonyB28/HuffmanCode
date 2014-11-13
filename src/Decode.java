@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 
 public class Decode{
 
@@ -40,8 +39,7 @@ public class Decode{
      * @param args <sourcefile targetfile> Input source, output target
      */
     public static void main(String[] args) throws IOException {
-        System.out.println("Hello World decode!");
-        byte[] input = ReadFile("src//HexEd2");
+        byte[] input = ReadFile("src//binaryXYEOF");
         DecodeToFile("", input);
         if(args.length == 2)
         {
@@ -132,41 +130,66 @@ public class Decode{
             System.out.println("Input data was not found in binary.");
             return;
         }
-        ArrayList directionsToDecode = new ArrayList();
-        for(; dataIndex < binary.length-1; ++dataIndex)
+        int[] data = new int[(binary.length - dataIndex)*8];
+        for(; dataIndex < binary.length; ++dataIndex)
         {
-            //TODO
+            byte valByte = binary[dataIndex];
+            for(int i = 0; i < 8; ++i)
+            {
+                int dataPos = (binary.length-1 - dataIndex) * 8;
+                int valInt = valByte>>(7-i) & 0x0001;
+                data[i+dataPos] += valInt;
+            }
         }
+        decodedMsg = GetDecodedMessage(root, data);
+        System.out.println(decodedMsg);
     }
 
-    //TODO
-    static char SearchTree(TreeNode root, byte[] binary, int dataIndex)
+    static String GetDecodedMessage(TreeNode root, int[] directions)
     {
+        String decodedMsg = "";
+        int directionIndex = 0;
         TreeNode curNode = root;
-        while(curNode.m_IsNode)
-        {
-            int direction = binary[dataIndex];
-            if(direction != 1 || direction != 0)
-            {
-                System.out.println("Some binary data not 1 or 0");
+        boolean eof = false;
+        while(!eof) {
+            while (curNode.m_IsNode) {
+                int direction = directions[directionIndex];
+                if (direction != 1 && direction != 0) {
+                    System.out.println("Some binary data not 1 or 0 "+ directionIndex );
+                }
+                if (direction == 0) {
+                    curNode = curNode.m_Left;
+                } else if (direction == 1) {
+                    curNode = curNode.m_Right;
+                }
+                ++directionIndex;
+                if (directionIndex > directions.length) {
+                    System.out.println("Binary data out of bounds in tree search" + directionIndex);
+                    decodedMsg += '!';
+                }
             }
-            if(direction == 0)
-            {
-                curNode = curNode.m_Left;
-            }
-            else if(direction == 1)
-            {
-                curNode = curNode.m_Right;
-            }
-            ++dataIndex;
-            if(dataIndex > binary.length)
-            {
-                System.out.println("Binary data out of bounds in tree search");
-                return 'a';
-            }
-        }
 
-        return 'a';
+            // Found a leaf in our search, make sure its a character and not a node
+            if (!curNode.m_IsNode)
+            {
+                // Test for EOF
+                if(curNode.m_Char == '\u0000')
+                {
+                    eof = true;
+                }
+                else // not eof, append to our decoded msg
+                {
+                    decodedMsg += curNode.m_Char;
+                }
+            }
+            else // we ended on a node? impossible?
+            {
+                System.out.println("Search tree ended in not a node " + directionIndex);
+                decodedMsg += '!';
+            }
+            curNode = root; // reset out search, won't matter if we hit EOF
+        }
+        return decodedMsg;
     }
 
 }
