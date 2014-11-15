@@ -41,7 +41,7 @@ public class Decode{
      * @param args <sourcefile targetfile> Input source, output target
      */
     public static void main(String[] args) throws IOException {
-        byte[] input = ReadFile("samples\\encoded\\sample3.huf");
+        byte[] input = ReadFile("samples\\encoded\\sample7.huf");
         DecodeToFile("test//output.txt", input);
         if(args.length == 2)
         {
@@ -63,7 +63,6 @@ public class Decode{
     static void DecodeToFile(String outputFilePath, byte[] binary) throws IOException
     {
         TreeNode root = new TreeNode(true, -1);
-        TreeNode psuedoRoot = root;
         int numberOfChars = binary[0];
         for(int i = 1; i <= numberOfChars*2; ++i)
         {
@@ -71,7 +70,8 @@ public class Decode{
             char val = (char) charNum;
             ++i;
             int length = binary[i];
-            TreeNode curNode = psuedoRoot;
+            TreeNode curNode = root;
+            boolean visitedPrev = false;
             boolean rightTree = false;
             for(int depth = 0; depth < length; ++depth)
             {
@@ -81,6 +81,7 @@ public class Decode{
                     if(curNode.m_Left == null)
                     {
                         curNode.m_Left = new TreeNode(false, depth);
+                        curNode.m_Left.m_Prev = curNode;
                         curNode.m_Left.m_Char = val;
                     }
                     else if(curNode.m_Right == null)
@@ -91,32 +92,39 @@ public class Decode{
                             if(curNode.m_Left.m_Char < val) // Keep smaller on the left
                             {
                                 curNode.m_Right = new TreeNode(false, depth);
+                                curNode.m_Right.m_Prev = curNode;
                                 curNode.m_Right.m_Char = val;
                             }
                             else // Left is bigger than us, put it on the right
                             {
                                 curNode.m_Right = curNode.m_Left;
                                 curNode.m_Left = new TreeNode(false, depth);
+                                curNode.m_Prev = curNode;
                                 curNode.m_Left.m_Char = val;
                             }
                         }
                         else
                         {
                             curNode.m_Right = new TreeNode(false, depth);
+                            curNode.m_Right.m_Prev = curNode;
                             curNode.m_Right.m_Char = val;
                         }
-                        if(rightTree) {
-                            rightTree = false;
-                            System.out.println("Right tree stop");
-                        }
+                        rightTree = false;
                     }
                     else
                     {
                         rightTree = true;
-                        curNode = psuedoRoot;
+
+                        curNode = (curNode.m_Prev == null) ? curNode.m_Right : curNode.m_Prev;
                         depth = curNode.m_Depth;
+                        if (visitedPrev) {
+                            depth += 1;
+                            visitedPrev = false;
+                        } else {
+                            visitedPrev = true;
+                        }
+
                     }
-                    psuedoRoot = root;
                 }
                 else // Keep traversing
                 {
@@ -125,18 +133,21 @@ public class Decode{
                     {
                         if(!nodeToEvaluate.m_IsNode)
                         {
+                            curNode.m_Right = nodeToEvaluate;
+                            curNode.m_Left = new TreeNode(true, nodeToEvaluate.m_Depth);
+                            curNode.m_Left.m_Prev = curNode;
                             System.out.println("Entered node that had a value:" + val);
-                            return;
+                            curNode = curNode.m_Left;
                         }
-                        curNode = nodeToEvaluate;
-                        if(rightTree)
+                        else
                         {
-                            psuedoRoot = curNode;
+                            curNode = nodeToEvaluate;
                         }
                     }
                     else
                     {
                         nodeToEvaluate = new TreeNode(true, depth);
+                        nodeToEvaluate.m_Prev = curNode;
                         if(!rightTree)
                         {
                             curNode.m_Left = nodeToEvaluate;

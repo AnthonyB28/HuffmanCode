@@ -11,6 +11,7 @@ public class TreeNode {
     public boolean m_IsNode;
     public TreeNode m_Left = null;
     public TreeNode m_Right = null;
+    public TreeNode m_Prev = null;
     public char m_Char;
     public int m_Depth;
 
