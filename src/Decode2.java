@@ -15,7 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class Decode2{
+public class Decode2
+{
 
     /* Usage:
         SOURCEFILE TARGETFILE
@@ -54,7 +55,7 @@ public class Decode2{
         else
         {
             System.out.println("Please provide sourcefile and targetfile");
-            byte[] input = ReadFile("samples//encoded//sample2.huf");
+            byte[] input = ReadFile("samples//encoded//sample7.huf");
             DecodeToFile("test//output.txt", input);
         }
     }
@@ -200,7 +201,12 @@ public class Decode2{
                 directionStr += valInt;
                 if(decoder.containsKey(directionStr))
                 {
-                    decodedMsg += decoder.get(directionStr);
+                    char result = decoder.get(directionStr);
+                    if(result == '\u0000')
+                    {
+                        break;
+                    }
+                    decodedMsg += result;
                     directionStr = "";
                 }
             }
