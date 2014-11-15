@@ -12,9 +12,11 @@ public class TreeNode {
     public TreeNode m_Left = null;
     public TreeNode m_Right = null;
     public char m_Char;
+    public int m_Depth;
 
-    public TreeNode(boolean node)
+    public TreeNode(boolean node, int depth)
     {
         m_IsNode = node;
+        m_Depth = depth;
     }
 }
