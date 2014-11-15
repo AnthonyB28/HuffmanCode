@@ -4,12 +4,8 @@
  * @author Anthony Barranco
  */
 
-import sun.reflect.generics.tree.Tree;
-
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -122,25 +118,25 @@ public class Decode2
         {
             TreeNode node = ar[i];
             TreeNode nextNode = i > 0 ? ar[i-1] : null;
-            String converted = "";
-            String binaryString = Integer.toBinaryString(position);
-            for(int x = 0; x < node.m_Depth-binaryString.length(); ++x)
+            String directionStr = "";
+            String binaryStr = Integer.toBinaryString(position);
+            for(int x = 0; x < node.m_Depth-binaryStr.length(); ++x)
             {
-                converted += "0";
+                directionStr += "0";
             }
-            converted += binaryString;
-            decoder.put(converted,node.m_Char);
+            directionStr += binaryStr;
+            decoder.put(directionStr,node.m_Char);
             if (nextNode != null)
             {
                 int newPosition = (position+1);
                 int offset = node.m_Depth - nextNode.m_Depth;
                 position = newPosition >> offset;
             }
-            int length = converted.length();
+            int length = directionStr.length();
             TreeNode cur = root;
             for(int bit = 0; bit < length; ++ bit)
             {
-                if(converted.charAt(bit) == '0')
+                if(directionStr.charAt(bit) == '0')
                 {
                     if(cur.m_Left == null)
                     {
