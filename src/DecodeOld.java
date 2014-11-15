@@ -6,13 +6,11 @@
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class Decode2
-{
+public class DecodeOld{
 
     /* Usage:
         SOURCEFILE TARGETFILE
@@ -41,8 +39,9 @@ public class Decode2
      * Input for program
      * @param args <sourcefile targetfile> Input source, output target
      */
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
+        byte[] input = ReadFile("samples\\encoded\\sample7.huf");
+        DecodeToFile("test//output.txt", input);
         if(args.length == 2)
         {
             byte[] input2 = ReadFile(args[0]);
@@ -51,128 +50,116 @@ public class Decode2
         else
         {
             System.out.println("Please provide sourcefile and targetfile");
-            byte[] input = ReadFile("samples//encoded//sample7.huf");
-            DecodeToFile("test//output.txt", input);
         }
     }
 
-    /**
-     * Read the encoded binary file
-     * @param path File path to binary file
-     * @return byte array representation of the binary file
-     */
     static byte[] ReadFile(String path) throws IOException
     {
         Path p = Paths.get(path);
         return Files.readAllBytes(p);
     }
 
-    /**
-     * Reads the encoded binary, creates a canonical Huffman tree, and then writes the decoded message to the file
-     * @param outputFilePath the output path of the decoded msg
-     * @param binary the binary file representation of the huffman code and secret message
-     */
     static void DecodeToFile(String outputFilePath, byte[] binary) throws IOException
     {
+        TreeNode root = new TreeNode(true, -1);
         int numberOfChars = binary[0];
-        Comparator<TreeNode> compare = new Comparator<TreeNode>() {
-            public int compare(TreeNode n1, TreeNode n2) {
-                if(n1.m_Depth != n2.m_Depth) {
-                    return n1.m_Depth < n2.m_Depth ? -1 : 1;
-                }
-                else
-                {
-                    return n1.m_Char < n2.m_Char ? 1 : -1;
-                }
-            }};
-        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(numberOfChars,compare);
         for(int i = 1; i <= numberOfChars*2; ++i)
         {
             int charNum = binary[i];
             char val = (char) charNum;
             ++i;
             int length = binary[i];
-            TreeNode character = new TreeNode(false, length);
-            character.m_Char = val;
-            q.add(character);
-        }
-/*        for(int i = 0; i < numberOfChars-1; ++i)
-        {
-            TreeNode node = new TreeNode(true, 0);
-            TreeNode x = q.poll();
-            TreeNode y = q.poll();
-            node.m_Left = x;
-            node.m_Right = y;
-            node.m_Depth = x.m_Depth + y.m_Depth;
-            q.add(node);
-        }
-        TreeNode root = q.poll();*/
-
-        int position = 0;
-        TreeNode root = new TreeNode(true, -1);
-        TreeNode[] ar = new TreeNode[q.size()];
-        q.toArray(ar);
-        Arrays.sort(ar, compare);
-        HashMap<String,Character> decoder = new HashMap<String,Character>();
-        for(int i = numberOfChars-1; i >= 0; --i)
-        {
-            TreeNode node = ar[i];
-            TreeNode nextNode = i > 0 ? ar[i-1] : null;
-            String directionStr = "";
-            String binaryStr = Integer.toBinaryString(position);
-            for(int x = 0; x < node.m_Depth-binaryStr.length(); ++x)
+            TreeNode curNode = root;
+            boolean visitedPrev = false;
+            boolean rightTree = false;
+            for(int depth = 0; depth < length; ++depth)
             {
-                directionStr += "0";
-            }
-            directionStr += binaryStr;
-            decoder.put(directionStr,node.m_Char);
-            if (nextNode != null)
-            {
-                int newPosition = (position+1);
-                int offset = node.m_Depth - nextNode.m_Depth;
-                position = newPosition >> offset;
-            }
-            int length = directionStr.length();
-            TreeNode cur = root;
-            for(int bit = 0; bit < length; ++ bit)
-            {
-                if(directionStr.charAt(bit) == '0')
+                // At depth where we want our node
+                if(depth == length-1)
                 {
-                    if(cur.m_Left == null)
+                    if(curNode.m_Left == null)
                     {
-                        if(bit == length-1)
+                        curNode.m_Left = new TreeNode(false, depth);
+                        curNode.m_Left.m_Prev = curNode;
+                        curNode.m_Left.m_Char = val;
+                    }
+                    else if(curNode.m_Right == null)
+                    {
+                        // Make sure we're canonical
+                        if(!curNode.m_Left.m_IsNode)
                         {
-                            cur.m_Left = node;
+                            if(curNode.m_Left.m_Char < val) // Keep smaller on the left
+                            {
+                                curNode.m_Right = new TreeNode(false, depth);
+                                curNode.m_Right.m_Prev = curNode;
+                                curNode.m_Right.m_Char = val;
+                            }
+                            else // Left is bigger than us, put it on the right
+                            {
+                                curNode.m_Right = curNode.m_Left;
+                                curNode.m_Left = new TreeNode(false, depth);
+                                curNode.m_Prev = curNode;
+                                curNode.m_Left.m_Char = val;
+                            }
                         }
                         else
                         {
-                            cur.m_Left = new TreeNode(true, 0);
-                            cur = cur.m_Left;
+                            curNode.m_Right = new TreeNode(false, depth);
+                            curNode.m_Right.m_Prev = curNode;
+                            curNode.m_Right.m_Char = val;
                         }
+                        rightTree = false;
                     }
                     else
                     {
-                        cur = cur.m_Left;
+                        rightTree = true;
+
+                        curNode = (curNode.m_Prev == null) ? curNode.m_Right : curNode.m_Prev;
+                        depth = curNode.m_Depth;
+                        if (visitedPrev) {
+                            depth += 1;
+                            visitedPrev = false;
+                        } else {
+                            visitedPrev = true;
+                        }
                     }
                 }
-                else
+                else // Keep traversing
                 {
-                    if (cur.m_Right == null)
+                    TreeNode nodeToEvaluate = rightTree ? curNode.m_Right : curNode.m_Left;
+                    if (nodeToEvaluate != null)
                     {
-                        if ( bit == length - 1)
+                        if(!nodeToEvaluate.m_IsNode)
                         {
-                            cur.m_Right = node;
+                            curNode.m_Right = nodeToEvaluate;
+                            curNode.m_Left = new TreeNode(true, nodeToEvaluate.m_Depth);
+                            curNode.m_Left.m_Prev = curNode;
+                            System.out.println("Entered node that had a value:" + val);
+                            curNode = curNode.m_Left;
                         }
                         else
                         {
-                            cur.m_Right = new TreeNode(true, 0);
-                            cur = cur.m_Right;
+                            curNode = nodeToEvaluate;
                         }
                     }
                     else
                     {
-                        cur = cur.m_Right;
+                        nodeToEvaluate = new TreeNode(true, depth);
+                        nodeToEvaluate.m_Prev = curNode;
+                        if(!rightTree)
+                        {
+                            curNode.m_Left = nodeToEvaluate;
+                        }
+                        else
+                        {
+                            curNode.m_Right = nodeToEvaluate;
+
+                                System.out.println("Right tree stop turn");
+                        }
+                        curNode = nodeToEvaluate;
                     }
+                    rightTree = false;
+
                 }
             }
         }
@@ -184,69 +171,43 @@ public class Decode2
             System.out.println("Input data was not found in binary.");
             return;
         }
-        //int[] data = new int[(binary.length - dataIndex)*8];
+        int[] data = new int[(binary.length - dataIndex)*8];
         int dataPos = 0;
-        String directionStr = "";
         for(; dataIndex < binary.length; ++dataIndex)
         {
             byte valByte = binary[dataIndex];
             for(int i = 0; i < 8; ++i)
             {
                 int valInt = valByte>>(7-i) & 0x0001;
-                //data[dataPos++] += valInt;
-                directionStr += valInt;
-                if(decoder.containsKey(directionStr))
-                {
-                    char result = decoder.get(directionStr);
-                    if(result == '\u0000')
-                    {
-                        break;
-                    }
-                    decodedMsg += result;
-                    directionStr = "";
-                }
+                data[dataPos++] += valInt;
             }
         }
-
-        //decodedMsg = GetDecodedMessageFromTree(root, data);
+        decodedMsg = GetDecodedMessage(root, data);
         System.out.println(decodedMsg);
         PrintWriter writer = new PrintWriter(outputFilePath, "UTF-8");
         writer.print(decodedMsg);
         writer.close();
     }
 
-    /**
-     * OPTIONAL FUNCTION
-     * Searches the tree and decodes the secret message.
-     * @param root Root of the huffman tree
-     * @param directions the binary representation of the secret message
-     * @return the deciphered message
-     */
-    static String GetDecodedMessageFromTree(TreeNode root, int[] directions)
+    static String GetDecodedMessage(TreeNode root, int[] directions)
     {
         String decodedMsg = "";
         int directionIndex = 0;
         TreeNode curNode = root;
         boolean eof = false;
         while(!eof) {
-            while (curNode.m_IsNode)
-            {
+            while (curNode.m_IsNode) {
                 int direction = directions[directionIndex];
-                if (direction != 1 && direction != 0)
-                {
+                if (direction != 1 && direction != 0) {
                     System.out.println("Some binary data not 1 or 0 "+ directionIndex );
                 }
-                if (direction == 0)
-                {
+                if (direction == 0) {
                     curNode = curNode.m_Left;
-                }
-                else if (direction == 1)
-                {
+                } else if (direction == 1) {
                     curNode = curNode.m_Right;
                 }
                 ++directionIndex;
-                if (directionIndex > directions.length)
-                {
+                if (directionIndex > directions.length) {
                     System.out.println("Binary data out of bounds in tree search" + directionIndex);
                     decodedMsg += '!';
                 }
