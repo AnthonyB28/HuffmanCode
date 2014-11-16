@@ -71,7 +71,7 @@ public class GraphViz
      * The dir. where temporary files will be created.
      */
     //private static String TEMP_DIR = "/tmp";	// Linux
-      private static String TEMP_DIR = "test/";	// Windows
+      private static String TEMP_DIR = ".";	// Windows
 
     /**
      * Where is your dot program located? It will be called externally.
@@ -185,7 +185,7 @@ public class GraphViz
         byte[] img_stream = null;
 
         try {
-            img = File.createTempFile("graph_", "."+type, new File(GraphViz.TEMP_DIR));
+            img = File.createTempFile("graphSource", "."+type, new File(GraphViz.TEMP_DIR));
             Runtime rt = Runtime.getRuntime();
 
             // patch by Mike Chenault

@@ -2,6 +2,24 @@
  * Huffman decoding.
  * Decodes a binary sourcefile into a targetfile.
  * @author Anthony Barranco
+ *
+    Restrictions:
+    -longer codes will be to the left of shorter codes
+    -same length code words will have numerical values increases with lexicographical order
+    e.g a = 0000 and b = 0001 but a =/= 0001 and b =/= 0000
+    Easiest to create canonical tree: create optimal tree and then convert
+
+    Binary format:
+    tree is a header at the beginning of our binary file (sourcefile)
+    First 8 bits represent the number of k of characters in the alphabet (unsigned)
+    Then k pairs of bytes representing (Char value, length of codeword)
+    Length of codeword = depth of the leaf in the tree.
+    0 = left, 1 = right
+
+    Steps:
+    1 Read in and build tree
+    2 Store codes for lookup efficiently
+    3 Decode and write output
  */
 
 import java.io.File;
@@ -15,32 +33,11 @@ import java.nio.file.Paths;
 public class Decode
 {
 
-    /* Usage:
-        SOURCEFILE TARGETFILE
-        decode the binary file sourcefile and save the character data to targetfile
-
-        Restrictions:
-        -longer codes will be to the left of shorter codes
-        -same length code words will have numerical values increases with lexicographical order
-        e.g a = 0000 and b = 0001 but a =/= 0001 and b =/= 0000
-        Easiest to create canonical tree: create optimal tree and then convert
-
-        Binary format:
-        tree is a header at the beginning of our binary file (sourcefile)
-        First 8 bits represent the number of k of characters in the alphabet (unsigned)
-        Then k pairs of bytes representing (Char value, length of codeword)
-        Length of codeword = depth of the leaf in the tree.
-        0 = left, 1 = right
-
-        Steps:
-        1 Read in and build tree
-        2 Store codes for lookup efficiently
-        3 Decode and write output
-     */
-
     /**
-     * Input for program
-     * @param args <sourcefile targetfile> Input source, output target
+     * Input for decoding.
+     * Can be called with 2 sets of arguments. Arguments include file name and extension (if applicable)
+     * @param args <sourceFile targetFile> Input binary path, output text path
+     * @param args <-c outputGraphFile sourceFile targetFile> output graph directory, input binary path, output text path
      */
     public static void main(String[] args) throws IOException
     {
@@ -60,8 +57,8 @@ public class Decode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            byte[] input = ReadFile("samples//encoded//sample9.huf");
-            DecodeToFile("test//output.txt", "test//graph.png", input);
+            byte[] input = ReadFile("samples//encoded//sample5.huf");
+            DecodeToFile("output//output.txt", "output//graph.png", input);
         }
     }
 
@@ -85,17 +82,9 @@ public class Decode
     static void DecodeToFile(String outputFilePath, String outputGraphFilePath, byte[] binary) throws IOException
     {
         int numberOfChars = binary[0];
-        Comparator<TreeNode> compare = new Comparator<TreeNode>() {
-            public int compare(TreeNode n1, TreeNode n2) {
-                if(n1.m_Depth != n2.m_Depth) {
-                    return n1.m_Depth < n2.m_Depth ? -1 : 1;
-                }
-                else
-                {
-                    return n1.m_Char < n2.m_Char ? 1 : -1;
-                }
-            }};
-        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(numberOfChars,compare);
+        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(numberOfChars,TreeNode.CanonicalCompare);
+
+        // Parse the binary header and insert into the priorityQ
         for(int i = 1; i <= numberOfChars*2; ++i)
         {
             int charNum = binary[i];
@@ -106,7 +95,8 @@ public class Decode
             character.m_Char = val;
             q.add(character);
         }
-/*        for(int i = 0; i < numberOfChars-1; ++i)
+/*       Sorting via the textbook's algorithm. Doesnt seem to work here. Maybe for encoding?
+        for(int i = 0; i < numberOfChars-1; ++i)
         {
             TreeNode node = new TreeNode(true, 0);
             TreeNode x = q.poll();
@@ -118,91 +108,104 @@ public class Decode
         }
         TreeNode root = q.poll();*/
 
-        int position = 0;
         TreeNode root = new TreeNode(true, -1);
-        TreeNode[] ar = new TreeNode[q.size()];
-        q.toArray(ar);
-        Arrays.sort(ar, compare);
+        root.m_ID = "Root";
+        TreeNode[] queueArray = new TreeNode[q.size()];
+        q.toArray(queueArray);
+        Arrays.sort(queueArray, TreeNode.CanonicalCompare); // Gives us the final sorted Huffman tree we need from bottom up
         HashMap<String,Character> decoder = new HashMap<String,Character>();
+
         GraphViz gv = new GraphViz();
         gv.addln(gv.start_graph());
+
+        // Bottom up approach to creating a Canonical Huffman tree.
+        int position = 0;
         for(int i = numberOfChars-1; i >= 0; --i)
         {
-            TreeNode node = ar[i];
-            TreeNode nextNode = i > 0 ? ar[i-1] : null;
+            TreeNode nodeToAdd = queueArray[i];
+            TreeNode nextNode = i > 0 ? queueArray[i-1] : null;
             String directionStr = "";
-            String binaryStr = Integer.toBinaryString(position);
-            for(int x = 0; x < node.m_Depth-binaryStr.length(); ++x)
+            String unpaddedBinary = Integer.toBinaryString(position); // Gives us the canonical representation of the char
+            for(int x = 0; x < nodeToAdd.m_Depth-unpaddedBinary.length(); ++x) // Expected depth - unpadded length = padding
             {
-                directionStr += "0";
+                directionStr += "0"; // Padding for the binary code.
             }
-            directionStr += binaryStr;
-            decoder.put(directionStr,node.m_Char);
+            directionStr += unpaddedBinary; // Binary representation of the code we need
+            decoder.put(directionStr,nodeToAdd.m_Char);
             if (nextNode != null)
             {
                 int newPosition = (position+1);
-                int offset = node.m_Depth - nextNode.m_Depth;
-                position = newPosition >> offset;
+                int offset = nodeToAdd.m_Depth - nextNode.m_Depth;
+                position = newPosition >> offset; // Binary representation of the next letter in the tree.
             }
-            int length = directionStr.length();
+            int directionBits = directionStr.length();
             TreeNode cur = root;
-            for(int bit = 0; bit < length; ++ bit)
+            // Make the canonical Huffman tree using the direction for this char
+            for(int bit = 0; bit < directionBits; ++ bit)
             {
-                if(directionStr.charAt(bit) == '0')
+                String nodeID = "_"+directionStr.substring(0,bit+1)+"_";
+                boolean left = (directionStr.charAt(bit) == '0');
+                TreeNode examineNode = left ? cur.m_Left : cur.m_Right;
+                if(examineNode == null)
                 {
-                    if(cur.m_Left == null)
+                    if (bit == directionBits - 1)
                     {
-                        if(bit == length-1)
+                        if (nodeToAdd.m_Char == '\u0000')
                         {
-                            if(node.m_Char == '\u0000')
-                            {
-                                gv.addln("Node" + cur.hashCode() + " -> " + "EOF");
-                            }
-                            else
-                            {
-                                gv.addln("Node" + cur.hashCode() + " -> " + "Char_" +node.m_Char+"_");
-                            }
-                            cur.m_Left = node;
+                            gv.addln(cur.m_ID + " -> " + "EOF");
+                        }
+                        else if(nodeToAdd.m_Char == '\n')
+                        {
+                            gv.addln(cur.m_ID + " -> " + "NewLine");
+                            gv.addln("NewLine [label=\"\\\\n\"]");
+                        }
+                        else if(nodeToAdd.m_Char == '\\')
+                        {
+                            gv.addln(cur.m_ID + " -> " + "BackSlash");
+                            gv.addln("BackSlash [label=\"\\\\\"]");
+                        }
+                        else if(nodeToAdd.m_Char == '\'')
+                        {
+                            gv.addln(cur.m_ID + " -> " + "SingleQuote");
+                            gv.addln("SingleQuote [label=\"\\\'\"]");
+                        }
+                        else if(nodeToAdd.m_Char == '\"')
+                        {
+                            gv.addln(cur.m_ID + " -> " + "Quote");
+                            gv.addln("Quote [label=\"\\\"\"]");
                         }
                         else
                         {
-                            cur.m_Left = new TreeNode(true, 0);
-                            gv.addln("Node"+cur.hashCode() + " -> " + "Node"+cur.m_Left.hashCode());
-                            cur = cur.m_Left;
+                            gv.addln(cur.m_ID + " -> " + "\"" + nodeToAdd.m_Char + "\"");
+                        }
+                        if (left)
+                        {
+                            cur.m_Left = nodeToAdd;
+                        }
+                        else
+                        {
+                            cur.m_Right = nodeToAdd;
                         }
                     }
                     else
                     {
-                        cur = cur.m_Left;
+                        examineNode = new TreeNode(true, 0);
+                        examineNode.m_ID = nodeID;
+                        if (left)
+                        {
+                            cur.m_Left = examineNode;
+                        }
+                        else
+                        {
+                            cur.m_Right = examineNode;
+                        }
+                        gv.addln(cur.m_ID + " -> " + examineNode.m_ID);
+                        cur = examineNode;
                     }
                 }
                 else
                 {
-                    if (cur.m_Right == null)
-                    {
-                        if ( bit == length - 1)
-                        {
-                            if(node.m_Char == '\u0000')
-                            {
-                                gv.addln("Node" + cur.hashCode() + " -> " + "EOF");
-                            }
-                            else
-                            {
-                                gv.addln("Node" + cur.hashCode() + " -> " + "Char_" +node.m_Char+"_");
-                                cur.m_Right = node;
-                            }
-                        }
-                        else
-                        {
-                            cur.m_Right = new TreeNode(true, 0);
-                            gv.addln("Node"+ cur.hashCode() + " -> " + "Node"+cur.m_Right.hashCode());
-                            cur = cur.m_Right;
-                        }
-                    }
-                    else
-                    {
-                        cur = cur.m_Right;
-                    }
+                    cur = examineNode;
                 }
             }
         }
@@ -264,6 +267,7 @@ public class Decode
         File out = new File(path);
         byte[] img = gv.getGraph(gv.getDotSource(), fileType);
         gv.writeGraphToFile( img, out );
+        System.out.println(gv.getDotSource());
     }
 
     /**
