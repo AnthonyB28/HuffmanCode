@@ -22,9 +22,7 @@
     3 Decode and write output
  */
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,7 +56,7 @@ public class Decode
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
             byte[] input = ReadFile("samples//encoded//sample5.huf");
-            DecodeToFile("output//output.txt", "output//graph.png", input);
+            DecodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
 
@@ -214,7 +212,7 @@ public class Decode
         gv.addln(gv.end_graph());
         if(outputGraphFilePath.length() > 0)
         {
-            WriteGraphFile(gv, outputGraphFilePath);
+            WriteGraphSource(gv, outputGraphFilePath);
         }
 
         String decodedMsg = "";
@@ -254,6 +252,18 @@ public class Decode
         writer.print(decodedMsg);
         writer.close();
     }
+    /**
+     * OPTIONAL FUNCTION
+     * Writes a GraphViz source to a file
+     * @param gv graph to write
+     * @param path path of the file to write to
+     */
+    static void WriteGraphSource(GraphViz gv, String path) throws FileNotFoundException, UnsupportedEncodingException
+    {
+        PrintWriter writer = new PrintWriter(path, "UTF-8");
+        writer.print(gv.getDotSource());
+        writer.close();
+    }
 
     /**
      * OPTIONAL FUNCTION
@@ -261,7 +271,7 @@ public class Decode
      * @param gv graph to write
      * @param path path of the file to write to
      */
-    static void WriteGraphFile(GraphViz gv, String path)
+    static void WriteGraphImageFile(GraphViz gv, String path)
     {
         String fileType = path.substring(path.length()-3, path.length());
         File out = new File(path);
