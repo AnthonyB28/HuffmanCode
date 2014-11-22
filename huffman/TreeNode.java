@@ -2,7 +2,9 @@
  * Representation of a node in the Huffmantree.
  * @author Anthony Barranco
  */
-
+ 
+ package huffman;
+ 
 import java.util.Comparator;
 
 public class TreeNode {

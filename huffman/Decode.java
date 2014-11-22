@@ -22,6 +22,8 @@
     3 Decode and write output
  */
 
+ package huffman;
+ 
 import java.io.*;
 import java.util.*;
 import java.nio.file.Files;
@@ -41,7 +43,7 @@ public class Decode
     {
         if(args.length >= 2)
         {
-            if(args[0] == "-c")
+            if(args[0].equals("-c"))
             {
                 byte[] input2 = ReadFile(args[2]);
                 DecodeToFile(args[3], args[1], input2);
@@ -55,8 +57,6 @@ public class Decode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            byte[] input = ReadFile("samples//encoded//sample5.huf");
-            DecodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
 
