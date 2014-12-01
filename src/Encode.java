@@ -1,6 +1,6 @@
 /**
- * Huffman decoding.
- * Decodes a binary sourcefile into a targetfile.
+ * Huffman encoding.
+ * Encodes a binary sourcefile into a targetfile.
  * @author Anthony Barranco
  *
     Restrictions:
@@ -17,25 +17,27 @@
     0 = left, 1 = right
 
     Steps:
-    1 Read in and build tree
-    2 Store codes for lookup efficiently
-    3 Decode and write output
+    1: Count character frequencies
+    2: Create Huffman tree
+    3: Canoncize huffman tree
+    4: Write tree to output file
+    5: write coded data to output file
  */
 
 import java.io.*;
-import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.*;
 
-public class Decode
+public class Encode
 {
 
     /**
-     * Input for decoding.
+     * Input for endcoding.
      * Can be called with 2 sets of arguments. Arguments include file name and extension (if applicable)
-     * @param args <sourceFile targetFile> Input binary path, output text path
-     * @param args <-c outputGraphFile sourceFile targetFile> output graph directory, input binary path, output text path
+     * @param args <sourceFile targetFile> Input text path, output binary path
+     * @param args <-c outputGraphFile sourceFile targetFile> output graph directory, input text path, output binary path
      */
     public static void main(String[] args) throws IOException
     {
@@ -43,20 +45,20 @@ public class Decode
         {
             if(args[0] == "-c")
             {
-                byte[] input2 = ReadFile(args[2]);
-                DecodeToFile(args[3], args[1], input2);
+                String input2 = ReadFile(args[2]);
+                EncodeToFile(args[3], args[1], input2);
             }
             else
             {
-                byte[] input2 = ReadFile(args[0]);
-                DecodeToFile(args[1], "", input2);
+                String input2 = ReadFile(args[0]);
+                EncodeToFile(args[1], "", input2);
             }
         }
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            byte[] input = ReadFile("samples//encoded//sample0.huf");
-            DecodeToFile("output//output.txt", "output//graph.gv", input);
+            String input = ReadFile("samples//text//sample0.txt");
+            EncodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
 
@@ -65,36 +67,24 @@ public class Decode
      * @param path File path to binary file
      * @return byte array representation of the binary file
      */
-    static byte[] ReadFile(String path) throws IOException
+    static String ReadFile(String path) throws IOException
     {
         Path p = Paths.get(path);
-        return Files.readAllBytes(p);
+        return new String(Files.readAllBytes(p));
     }
 
     /**
-     * Reads the encoded binary, creates a canonical Huffman tree, and then writes the decoded message to the file
+     * Reads the decoded/plain text file, creates a canonical Huffman tree, and then writes the encoded message to a binary file with header
      * @param outputFilePath the output path of the decoded msg
      * @param outputGraphFilePath the output path of the huffman tree image, pass empty string to skip
-     * @param binary the binary file representation of the huffman code and secret message
+     * @param message the secret message to encode to a binary file
      */
-    static void DecodeToFile(String outputFilePath, String outputGraphFilePath, byte[] binary) throws IOException
+    static void EncodeToFile(String outputFilePath, String outputGraphFilePath, String message) throws IOException
     {
-        int numberOfChars = binary[0];
-        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(numberOfChars,TreeNode.CanonicalCompare);
+        PriorityQueue<TreeNode> q = GetPriorityQueue(message);
 
-        // Parse the binary header and insert into the priorityQ
-        for(int i = 1; i <= numberOfChars*2; ++i)
-        {
-            int charNum = binary[i];
-            char val = (char) charNum;
-            ++i;
-            int length = binary[i];
-            TreeNode character = new TreeNode(false, length);
-            character.m_Char = val;
-            q.add(character);
-        }
-/*       Sorting via the textbook's algorithm. Doesnt seem to work here. Maybe for encoding?
-        for(int i = 0; i < numberOfChars-1; ++i)
+        //Sorting via the textbook's algorithm. Doesnt seem to work here. Maybe for encoding?
+        for(int i = 0; i < q.size(); ++i)
         {
             TreeNode node = new TreeNode(true, 0);
             TreeNode x = q.poll();
@@ -104,8 +94,9 @@ public class Decode
             node.m_Depth = x.m_Depth + y.m_Depth;
             q.add(node);
         }
-        TreeNode root = q.poll();*/
+        TreeNode root = q.poll();
 
+        /*
         TreeNode root = new TreeNode(true, -1);
         root.m_ID = "Root";
         TreeNode[] queueArray = new TreeNode[q.size()];
@@ -213,7 +204,6 @@ public class Decode
         if(outputGraphFilePath.length() > 0)
         {
             WriteGraphSource(gv, outputGraphFilePath);
-            WriteGraphImageFile(gv, outputGraphFilePath+".png");
         }
 
         String decodedMsg = "";
@@ -251,8 +241,37 @@ public class Decode
         System.out.println(decodedMsg);
         PrintWriter writer = new PrintWriter(outputFilePath, "UTF-8");
         writer.print(decodedMsg);
-        writer.close();
+        writer.close();*/
     }
+
+    static PriorityQueue<TreeNode> GetPriorityQueue(String message)
+    {
+        HashMap<Character,Integer> frequencies = new HashMap<Character, Integer>();
+
+        int length = message.length();
+        for(int i = 0; i < length; ++i)
+        {
+            char letter = message.charAt(i);
+            if(frequencies.containsKey(letter))
+            {
+                frequencies.put(letter, frequencies.get(letter)+1);
+            }
+            else
+            {
+                frequencies.put(letter, 1);
+            }
+        }
+
+        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(frequencies.size(),TreeNode.CanonicalCompare);
+        for (Map.Entry<Character, Integer> entry : frequencies.entrySet())
+        {
+            TreeNode n = new TreeNode(false, entry.getValue());
+            n.m_Char = entry.getKey();
+            q.add(n);
+        }
+        return q;
+    }
+
     /**
      * OPTIONAL FUNCTION
      * Writes a GraphViz source to a file
