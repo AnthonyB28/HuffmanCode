@@ -24,7 +24,11 @@
     5: write coded data to output file
  */
 
+import sun.reflect.generics.tree.Tree;
+
 import java.io.*;
+import java.lang.reflect.Array;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,9 +61,11 @@ public class Encode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            String input = ReadFile("samples//text//sample0.txt");
-            EncodeToFile("output//output.txt", "output//graph.gv", input);
+            String input = ReadFile("samples//text//sample5.txt");
+            EncodeToFile("output//outputencode.txt", "output//graphencode.gv", input);
         }
+
+        Decode.main(new String[0]);
     }
 
     /**
@@ -81,170 +87,85 @@ public class Encode
      */
     static void EncodeToFile(String outputFilePath, String outputGraphFilePath, String message) throws IOException
     {
-        PriorityQueue<TreeNode> q = GetPriorityQueue(message);
+        message += '\u0000';
+        PriorityQueue<TreeNode> q = GetSortedQueue(message);
 
-        //Sorting via the textbook's algorithm. Doesnt seem to work here. Maybe for encoding?
-        for(int i = 0; i < q.size(); ++i)
+        int numOfChars = q.size();
+        TreeNode[] queueArray = new TreeNode[q.size()];
+        q.toArray(queueArray);
+        //Arrays.sort(queueArray, TreeNode.CanonicalCompare); // Gives us the final sorted Huffman tree we need from bottom up
+
+        for(int i = 0; i < numOfChars-1; ++i)
         {
             TreeNode node = new TreeNode(true, 0);
+            node.m_Char = (char) 127;
             TreeNode x = q.poll();
             TreeNode y = q.poll();
-            node.m_Left = x;
-            node.m_Right = y;
+            if(!x.m_IsNode)
+            {
+                if (x.m_Depth > y.m_Depth) {
+                    node.m_Left = x;
+                    node.m_Right = y;
+                } else if (x.m_Depth == y.m_Depth && x.m_Char < y.m_Char) {
+                    node.m_Left = x;
+                    node.m_Right = y;
+                } else {
+                    node.m_Left = y;
+                    node.m_Right = x;
+                }
+            }
+            else
+            {
+                node.m_Left = x;
+                node.m_Right = y;
+            }
             node.m_Depth = x.m_Depth + y.m_Depth;
             q.add(node);
         }
         TreeNode root = q.poll();
-
-        /*
-        TreeNode root = new TreeNode(true, -1);
+        root.m_Depth = -1;
         root.m_ID = "Root";
-        TreeNode[] queueArray = new TreeNode[q.size()];
-        q.toArray(queueArray);
-        Arrays.sort(queueArray, TreeNode.CanonicalCompare); // Gives us the final sorted Huffman tree we need from bottom up
-        HashMap<String,Character> decoder = new HashMap<String,Character>();
 
         GraphViz gv = new GraphViz();
         gv.addln(gv.start_graph());
 
-        // Bottom up approach to creating a Canonical Huffman tree.
-        int position = 0;
-        for(int i = numberOfChars-1; i >= 0; --i)
+        ByteArrayOutputStream s = new ByteArrayOutputStream();
+        s.write(numOfChars);
+        HashMap<Character,String> decoder = new HashMap<Character,String>();
+        for(int i = 0; i < queueArray.length; ++i)
         {
-            TreeNode nodeToAdd = queueArray[i];
-            TreeNode nextNode = i > 0 ? queueArray[i-1] : null;
-            String directionStr = "";
-            String unpaddedBinary = Integer.toBinaryString(position); // Gives us the canonical representation of the char
-            for(int x = 0; x < nodeToAdd.m_Depth-unpaddedBinary.length(); ++x) // Expected depth - unpadded length = padding
+            s.write((int)queueArray[i].m_Char);
+            String code = binarySearch(queueArray[i].m_Char, root, "");
+            s.write(code.length());
+            decoder.put(queueArray[i].m_Char, code);
+        }
+
+        String encodedMsg = "";
+        int msgLength = message.length();
+        for(int i = 0; i < msgLength; ++i)
+        {
+            String encode = decoder.get(message.charAt(i));
+            encodedMsg += encode;
+        }
+
+        if(encodedMsg.length() % 8 != 0)
+        {
+            while(encodedMsg.length() % 8 != 0)
             {
-                directionStr += "0"; // Padding for the binary code.
-            }
-            directionStr += unpaddedBinary; // Binary representation of the code we need
-            decoder.put(directionStr,nodeToAdd.m_Char);
-            if (nextNode != null)
-            {
-                int newPosition = (position+1);
-                int offset = nodeToAdd.m_Depth - nextNode.m_Depth;
-                position = newPosition >> offset; // Binary representation of the next letter in the tree.
-            }
-            int directionBits = directionStr.length();
-            TreeNode cur = root;
-            // Make the canonical Huffman tree using the direction for this char
-            for(int bit = 0; bit < directionBits; ++ bit)
-            {
-                String nodeID = "_"+directionStr.substring(0,bit+1)+"_";
-                boolean left = (directionStr.charAt(bit) == '0');
-                TreeNode examineNode = left ? cur.m_Left : cur.m_Right;
-                if(examineNode == null)
-                {
-                    if (bit == directionBits - 1)
-                    {
-                        if (nodeToAdd.m_Char == '\u0000')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "EOF");
-                        }
-                        else if(nodeToAdd.m_Char == '\n')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "NewLine");
-                            gv.addln("NewLine [label=\"\\\\n\"]");
-                        }
-                        else if(nodeToAdd.m_Char == '\\')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "BackSlash");
-                            gv.addln("BackSlash [label=\"\\\\\"]");
-                        }
-                        else if(nodeToAdd.m_Char == '\'')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "SingleQuote");
-                            gv.addln("SingleQuote [label=\"\\\'\"]");
-                        }
-                        else if(nodeToAdd.m_Char == '\"')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "Quote");
-                            gv.addln("Quote [label=\"\\\"\"]");
-                        }
-                        else
-                        {
-                            gv.addln(cur.m_ID + " -> " + "\"" + nodeToAdd.m_Char + "\"");
-                        }
-                        if (left)
-                        {
-                            cur.m_Left = nodeToAdd;
-                        }
-                        else
-                        {
-                            cur.m_Right = nodeToAdd;
-                        }
-                    }
-                    else
-                    {
-                        examineNode = new TreeNode(true, 0);
-                        examineNode.m_ID = nodeID;
-                        if (left)
-                        {
-                            cur.m_Left = examineNode;
-                        }
-                        else
-                        {
-                            cur.m_Right = examineNode;
-                        }
-                        gv.addln(cur.m_ID + " -> " + examineNode.m_ID);
-                        cur = examineNode;
-                    }
-                }
-                else
-                {
-                    cur = examineNode;
-                }
+                encodedMsg += "0";
             }
         }
 
-
-        gv.addln(gv.end_graph());
-        if(outputGraphFilePath.length() > 0)
+        for(int i = 0; i < encodedMsg.length()/8; ++i)
         {
-            WriteGraphSource(gv, outputGraphFilePath);
+            s.write(Integer.parseInt(encodedMsg.substring(i*8,i*8+8),2));
         }
 
-        String decodedMsg = "";
-        int dataIndex = (numberOfChars*2)+1;
-        if(dataIndex > binary.length)
-        {
-            System.out.println("Input data was not found in binary.");
-            return;
-        }
-        //int[] data = new int[(binary.length - dataIndex)*8];
-        //int dataPos = 0;
-        String directionStr = "";
-        for(; dataIndex < binary.length; ++dataIndex)
-        {
-            byte valByte = binary[dataIndex];
-            for(int i = 0; i < 8; ++i)
-            {
-                int valInt = valByte>>(7-i) & 0x0001;
-                //data[dataPos++] += valInt;
-                directionStr += valInt;
-                if(decoder.containsKey(directionStr))
-                {
-                    char result = decoder.get(directionStr);
-                    if(result == '\u0000')
-                    {
-                        break;
-                    }
-                    decodedMsg += result;
-                    directionStr = "";
-                }
-            }
-        }
-
-        //decodedMsg = GetDecodedMessageFromTree(root, data);
-        System.out.println(decodedMsg);
-        PrintWriter writer = new PrintWriter(outputFilePath, "UTF-8");
-        writer.print(decodedMsg);
-        writer.close();*/
+        System.out.println("Encoded msg: " + encodedMsg);
+        Files.write(Paths.get(outputFilePath), s.toByteArray());
     }
 
-    static PriorityQueue<TreeNode> GetPriorityQueue(String message)
+    static PriorityQueue<TreeNode> GetSortedQueue(String message)
     {
         HashMap<Character,Integer> frequencies = new HashMap<Character, Integer>();
 
@@ -262,13 +183,16 @@ public class Encode
             }
         }
 
-        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(frequencies.size(),TreeNode.CanonicalCompare);
+        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(TreeNode.CanonicalCompareEncode);
         for (Map.Entry<Character, Integer> entry : frequencies.entrySet())
         {
             TreeNode n = new TreeNode(false, entry.getValue());
             n.m_Char = entry.getKey();
             q.add(n);
         }
+        //Collections.sort(nodeList, TreeNode.CanonicalCompareEncode);
+
+        //Queue<TreeNode> q = nodeList;
         return q;
     }
 
@@ -300,64 +224,39 @@ public class Encode
         System.out.println(gv.getDotSource());
     }
 
-    /**
-     * OPTIONAL FUNCTION
-     * Searches the tree and decodes the secret message.
-     * @param root Root of the huffman tree
-     * @param directions the binary representation of the secret message
-     * @return the deciphered message
-     */
-    static String GetDecodedMessageFromTree(TreeNode root, int[] directions)
-    {
-        String decodedMsg = "";
-        int directionIndex = 0;
-        TreeNode curNode = root;
-        boolean eof = false;
-        while(!eof) {
-            while (curNode.m_IsNode)
-            {
-                int direction = directions[directionIndex];
-                if (direction != 1 && direction != 0)
-                {
-                    System.out.println("Some binary data not 1 or 0 "+ directionIndex );
-                }
-                if (direction == 0)
-                {
-                    curNode = curNode.m_Left;
-                }
-                else if (direction == 1)
-                {
-                    curNode = curNode.m_Right;
-                }
-                ++directionIndex;
-                if (directionIndex > directions.length)
-                {
-                    System.out.println("Binary data out of bounds in tree search" + directionIndex);
-                    decodedMsg += '!';
-                }
-            }
 
-            // Found a leaf in our search, make sure its a character and not a node
-            if (!curNode.m_IsNode)
+    static String binarySearch(char toFind, TreeNode node, String directions)
+    {
+        if(!node.m_IsNode)
+        {
+            if(node.m_Char == toFind)
             {
-                // Test for EOF
-                if(curNode.m_Char == '\u0000')
-                {
-                    eof = true;
-                }
-                else // not eof, append to our decoded msg
-                {
-                    decodedMsg += curNode.m_Char;
-                }
+                return directions;
             }
-            else // we ended on a node? impossible?
+            else
             {
-                System.out.println("Search tree ended in not a node " + directionIndex);
-                decodedMsg += '!';
+                return null;
             }
-            curNode = root; // reset out search, won't matter if we hit EOF
         }
-        return decodedMsg;
+        else
+        {
+            if(node.m_Left != null)
+            {
+                String result = binarySearch(toFind, node.m_Left, directions+"0");
+                if(result != null)
+                {
+                    return result;
+                }
+            }
+            if(node.m_Right != null)
+            {
+                String result = binarySearch(toFind, node.m_Right, directions + "1");
+                if (result != null) {
+                    return result;
+                }
+            }
+            return null;
+        }
     }
 
 }

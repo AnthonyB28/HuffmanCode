@@ -55,7 +55,8 @@ public class Decode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            byte[] input = ReadFile("samples//encoded//sample0.huf");
+            //byte[] input = ReadFile("samples//encoded//sample3.huf");
+            byte[] input = ReadFile("output//outputencode.txt");
             DecodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
@@ -93,18 +94,6 @@ public class Decode
             character.m_Char = val;
             q.add(character);
         }
-/*       Sorting via the textbook's algorithm. Doesnt seem to work here. Maybe for encoding?
-        for(int i = 0; i < numberOfChars-1; ++i)
-        {
-            TreeNode node = new TreeNode(true, 0);
-            TreeNode x = q.poll();
-            TreeNode y = q.poll();
-            node.m_Left = x;
-            node.m_Right = y;
-            node.m_Depth = x.m_Depth + y.m_Depth;
-            q.add(node);
-        }
-        TreeNode root = q.poll();*/
 
         TreeNode root = new TreeNode(true, -1);
         root.m_ID = "Root";
