@@ -44,4 +44,36 @@ public class TreeNode {
                 return n1.m_Char < n2.m_Char ? -1 : 1;
             }
         }};
+
+    public void GraphVizLabel(GraphViz gv, String parentID)
+    {
+        if (m_Char == '\u0000')
+        {
+            gv.addln(parentID + " -> " + "EOF");
+        }
+        else if(m_Char == '\n')
+        {
+            gv.addln(parentID + " -> " + "NewLine");
+            gv.addln("NewLine [label=\"\\\\n\"]");
+        }
+        else if(m_Char == '\\')
+        {
+            gv.addln(parentID + " -> " + "BackSlash");
+            gv.addln("BackSlash [label=\"\\\\\"]");
+        }
+        else if(m_Char == '\'')
+        {
+            gv.addln(parentID + " -> " + "SingleQuote");
+            gv.addln("SingleQuote [label=\"\\\'\"]");
+        }
+        else if(m_Char == '\"')
+        {
+            gv.addln(parentID + " -> " + "Quote");
+            gv.addln("Quote [label=\"\\\"\"]");
+        }
+        else
+        {
+            gv.addln(parentID + " -> " + "\"" + m_Char + "\"");
+        }
+    }
 }

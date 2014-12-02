@@ -55,9 +55,9 @@ public class Decode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            //byte[] input = ReadFile("samples//encoded//sample3.huf");
-            byte[] input = ReadFile("output//outputencode.txt");
-            DecodeToFile("output//output.txt", "output//graph.gv", input);
+            //byte[] input = ReadFile("samples//encoded//sample4.huf");
+            //byte[] input = ReadFile("output//outputencode.txt");
+            //DecodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
 
@@ -137,34 +137,7 @@ public class Decode
                 {
                     if (bit == directionBits - 1)
                     {
-                        if (nodeToAdd.m_Char == '\u0000')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "EOF");
-                        }
-                        else if(nodeToAdd.m_Char == '\n')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "NewLine");
-                            gv.addln("NewLine [label=\"\\\\n\"]");
-                        }
-                        else if(nodeToAdd.m_Char == '\\')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "BackSlash");
-                            gv.addln("BackSlash [label=\"\\\\\"]");
-                        }
-                        else if(nodeToAdd.m_Char == '\'')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "SingleQuote");
-                            gv.addln("SingleQuote [label=\"\\\'\"]");
-                        }
-                        else if(nodeToAdd.m_Char == '\"')
-                        {
-                            gv.addln(cur.m_ID + " -> " + "Quote");
-                            gv.addln("Quote [label=\"\\\"\"]");
-                        }
-                        else
-                        {
-                            gv.addln(cur.m_ID + " -> " + "\"" + nodeToAdd.m_Char + "\"");
-                        }
+                        nodeToAdd.GraphVizLabel(gv, cur.m_ID);
                         if (left)
                         {
                             cur.m_Left = nodeToAdd;
@@ -202,7 +175,7 @@ public class Decode
         if(outputGraphFilePath.length() > 0)
         {
             WriteGraphSource(gv, outputGraphFilePath);
-            WriteGraphImageFile(gv, outputGraphFilePath+".png");
+            //WriteGraphImageFile(gv, outputGraphFilePath+".png");
         }
 
         String decodedMsg = "";
