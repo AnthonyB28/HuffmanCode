@@ -62,9 +62,10 @@ public class Encode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            //String message = ReadFile("samples//text//sample5.txt");
-            //EncodeToFile("output//outputencode.txt", "output//graphencode.gv", true, message);
+            String message = ReadFile("samples//text//sample7.txt");
+            EncodeToFile("output//outputencode.txt", "output//graphencode.gv", true, message);
         }
+        Decode.main(new String[0]);
     }
 
     /**
@@ -110,19 +111,19 @@ public class Encode
         canonicalGraph.addln(canonicalGraph.start_graph());
 
         HashMap<Character,String> decoder = new HashMap<Character,String>();
-        TreeNode canonicalRoot = GetCanonicalTree(numOfChars, huffmanLeafs, decoder, canonicalGraph);
+        GetCanonicalTree(numOfChars, huffmanLeafs, decoder, canonicalGraph);
         canonicalGraph.addln(canonicalGraph.end_graph());
         if(outputGraphFilePath.length() > 0)
         {
             if(canonicalGraphOutput)
             {
-                WriteGraphSource(canonicalGraph, outputGraphFilePath);
-                //WriteGraphImageFile(canonicalGraph, outputGraphFilePath + ".png");
+                GraphViz.WriteGraphSource(canonicalGraph, outputGraphFilePath);
+                GraphViz.WriteGraphImageFile(canonicalGraph, outputGraphFilePath + ".png");
             }
             else
             {
-                WriteGraphSource(nonCanonicalGraph, outputGraphFilePath);
-                //WriteGraphImageFile(nonCanonicalGraph, outputGraphFilePath + ".png");
+                GraphViz.WriteGraphSource(nonCanonicalGraph, outputGraphFilePath);
+                GraphViz.WriteGraphImageFile(nonCanonicalGraph, outputGraphFilePath + ".png");
             }
         }
 
@@ -139,12 +140,12 @@ public class Encode
         }
 
         // Secret message data
-        String encodedMsg = "";
+        StringBuilder encodedMsg = new StringBuilder();
         int msgLength = message.length();
         for(int i = 0; i < msgLength; ++i)
         {
             String encode = decoder.get(message.charAt(i));
-            encodedMsg += encode;
+            encodedMsg.append(encode);
         }
 
         // Padding for data
@@ -152,7 +153,7 @@ public class Encode
         {
             while(encodedMsg.length() % 8 != 0)
             {
-                encodedMsg += "0";
+                encodedMsg.append("0");
             }
         }
 
@@ -162,7 +163,7 @@ public class Encode
             s.write(Integer.parseInt(encodedMsg.substring(i*8,i*8+8),2));
         }
 
-        System.out.println("Encoded msg: " + encodedMsg);
+        System.out.println("Encoded msg: " + encodedMsg.toString());
         Files.write(Paths.get(outputFilePath), s.toByteArray());
     }
 
@@ -172,7 +173,6 @@ public class Encode
      * @param message the secret text message to encode
      * @param nonCanonicalGraph graph representation of a tree
      * @param charactersToEncode unique characters to encode
-     * @return root of non canonical huffman tree
      */
     static TreeNode GetNonCanonicalTree(String message, GraphViz nonCanonicalGraph, ArrayList<TreeNode> charactersToEncode)
     {
@@ -192,7 +192,7 @@ public class Encode
             }
         }
 
-        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(TreeNode.CanonicalCompareEncode);
+        PriorityQueue<TreeNode> q = new PriorityQueue<TreeNode>(frequencies.size(),TreeNode.CanonicalCompareEncode);
         for (Map.Entry<Character, Integer> entry : frequencies.entrySet())
         {
             TreeNode n = new TreeNode(false, entry.getValue());
@@ -244,7 +244,7 @@ public class Encode
      * @param canonicalGraph represenation of canonical tree
      * @return root of the tree
      */
-    static TreeNode GetCanonicalTree(int numOfChars, ArrayList<TreeNode> huffmanLeafs, HashMap<Character, String> decoder, GraphViz canonicalGraph)
+    static void GetCanonicalTree(int numOfChars, ArrayList<TreeNode> huffmanLeafs, HashMap<Character, String> decoder, GraphViz canonicalGraph)
     {
         TreeNode canonicalRoot = new TreeNode(true, -1);
         canonicalRoot.m_ID = "Root";
@@ -253,14 +253,14 @@ public class Encode
         {
             TreeNode nodeToAdd = huffmanLeafs.get(i);
             TreeNode nextNode = i > 0 ? huffmanLeafs.get(i-1) : null;
-            String directionStr = "";
+            StringBuilder directionStr = new StringBuilder();
             String unpaddedBinary = Integer.toBinaryString(position); // Gives us the canonical representation of the char
             for(int x = 0; x < nodeToAdd.m_Depth-unpaddedBinary.length(); ++x) // Expected depth - unpadded length = padding
             {
-                directionStr += "0"; // Padding for the binary code.
+                directionStr.append("0"); // Padding for the binary code.
             }
-            directionStr += unpaddedBinary; // Binary representation of the code we need
-            decoder.put(nodeToAdd.m_Char,directionStr);
+            directionStr.append(unpaddedBinary); // Binary representation of the code we need
+            decoder.put(nodeToAdd.m_Char,directionStr.toString());
             if (nextNode != null)
             {
                 int newPosition = (position+1);
@@ -311,37 +311,8 @@ public class Encode
                 }
             }
         }
-        return canonicalRoot;
+        //return canonicalRoot;
     }
-
-    /**
-     * OPTIONAL FUNCTION
-     * Writes a GraphViz source to a file
-     * @param gv graph to write
-     * @param path path of the file to write to
-     */
-    static void WriteGraphSource(GraphViz gv, String path) throws FileNotFoundException, UnsupportedEncodingException
-    {
-        PrintWriter writer = new PrintWriter(path, "UTF-8");
-        writer.print(gv.getDotSource());
-        writer.close();
-    }
-
-    /**
-     * OPTIONAL FUNCTION
-     * Writes a GraphViz to an image.
-     * @param gv graph to write
-     * @param path path of the file to write to
-     */
-    static void WriteGraphImageFile(GraphViz gv, String path)
-    {
-        String fileType = path.substring(path.length()-3, path.length());
-        File out = new File(path);
-        byte[] img = gv.getGraph(gv.getDotSource(), fileType);
-        gv.writeGraphToFile( img, out );
-        System.out.println(gv.getDotSource());
-    }
-
 
     /**
      * Adds leafs of a tree to a provided list and modifies the depth of the leafs for accuracy

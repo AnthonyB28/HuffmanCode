@@ -23,13 +23,7 @@
  ******************************************************************************
  */
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.InputStreamReader;
+import java.io.*;
 
 /**
  * <dl>
@@ -67,6 +61,36 @@ import java.io.InputStreamReader;
  */
 public class GraphViz
 {
+
+
+    /**
+     * OPTIONAL FUNCTION
+     * Writes a GraphViz source to a file
+     * @param gv graph to write
+     * @param path path of the file to write to
+     */
+    static void WriteGraphSource(GraphViz gv, String path) throws FileNotFoundException, UnsupportedEncodingException
+    {
+        PrintWriter writer = new PrintWriter(path, "UTF-8");
+        writer.print(gv.getDotSource());
+        writer.close();
+    }
+
+    /**
+     * OPTIONAL FUNCTION
+     * Writes a GraphViz to an image.
+     * @param gv graph to write
+     * @param path path of the file to write to
+     */
+    static void WriteGraphImageFile(GraphViz gv, String path)
+    {
+        String fileType = path.substring(path.length()-3, path.length());
+        File out = new File(path);
+        byte[] img = gv.getGraph(gv.getDotSource(), fileType);
+        gv.writeGraphToFile( img, out );
+        System.out.println(gv.getDotSource());
+    }
+
     /**
      * The dir. where temporary files will be created.
      */

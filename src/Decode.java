@@ -55,9 +55,9 @@ public class Decode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            //byte[] input = ReadFile("samples//encoded//sample4.huf");
-            //byte[] input = ReadFile("output//outputencode.txt");
-            //DecodeToFile("output//output.txt", "output//graph.gv", input);
+            //byte[] input = ReadFile("samples//encoded//sample9.huf");
+            byte[] input = ReadFile("output//outputencode.txt");
+            DecodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
 
@@ -111,14 +111,14 @@ public class Decode
         {
             TreeNode nodeToAdd = queueArray[i];
             TreeNode nextNode = i > 0 ? queueArray[i-1] : null;
-            String directionStr = "";
+            StringBuilder directionStr = new StringBuilder();
             String unpaddedBinary = Integer.toBinaryString(position); // Gives us the canonical representation of the char
             for(int x = 0; x < nodeToAdd.m_Depth-unpaddedBinary.length(); ++x) // Expected depth - unpadded length = padding
             {
-                directionStr += "0"; // Padding for the binary code.
+                directionStr.append("0"); // Padding for the binary code.
             }
-            directionStr += unpaddedBinary; // Binary representation of the code we need
-            decoder.put(directionStr,nodeToAdd.m_Char);
+            directionStr.append(unpaddedBinary); // Binary representation of the code we need
+            decoder.put(directionStr.toString(),nodeToAdd.m_Char);
             if (nextNode != null)
             {
                 int newPosition = (position+1);
@@ -174,11 +174,10 @@ public class Decode
         gv.addln(gv.end_graph());
         if(outputGraphFilePath.length() > 0)
         {
-            WriteGraphSource(gv, outputGraphFilePath);
-            //WriteGraphImageFile(gv, outputGraphFilePath+".png");
+            GraphViz.WriteGraphSource(gv, outputGraphFilePath);
+            GraphViz.WriteGraphImageFile(gv, outputGraphFilePath + ".png");
         }
 
-        String decodedMsg = "";
         int dataIndex = (numberOfChars*2)+1;
         if(dataIndex > binary.length)
         {
@@ -187,7 +186,8 @@ public class Decode
         }
         //int[] data = new int[(binary.length - dataIndex)*8];
         //int dataPos = 0;
-        String directionStr = "";
+        StringBuilder decodedMsg = new StringBuilder();
+        StringBuilder directionStr = new StringBuilder();
         for(; dataIndex < binary.length; ++dataIndex)
         {
             byte valByte = binary[dataIndex];
@@ -195,16 +195,16 @@ public class Decode
             {
                 int valInt = valByte>>(7-i) & 0x0001;
                 //data[dataPos++] += valInt;
-                directionStr += valInt;
-                if(decoder.containsKey(directionStr))
+                directionStr.append(valInt);
+                if(decoder.containsKey(directionStr.toString()))
                 {
-                    char result = decoder.get(directionStr);
+                    char result = decoder.get(directionStr.toString());
                     if(result == '\u0000')
                     {
                         break;
                     }
-                    decodedMsg += result;
-                    directionStr = "";
+                    decodedMsg.append(result);
+                    directionStr = new StringBuilder();
                 }
             }
         }
@@ -214,33 +214,6 @@ public class Decode
         PrintWriter writer = new PrintWriter(outputFilePath, "UTF-8");
         writer.print(decodedMsg);
         writer.close();
-    }
-    /**
-     * OPTIONAL FUNCTION
-     * Writes a GraphViz source to a file
-     * @param gv graph to write
-     * @param path path of the file to write to
-     */
-    static void WriteGraphSource(GraphViz gv, String path) throws FileNotFoundException, UnsupportedEncodingException
-    {
-        PrintWriter writer = new PrintWriter(path, "UTF-8");
-        writer.print(gv.getDotSource());
-        writer.close();
-    }
-
-    /**
-     * OPTIONAL FUNCTION
-     * Writes a GraphViz to an image.
-     * @param gv graph to write
-     * @param path path of the file to write to
-     */
-    static void WriteGraphImageFile(GraphViz gv, String path)
-    {
-        String fileType = path.substring(path.length()-3, path.length());
-        File out = new File(path);
-        byte[] img = gv.getGraph(gv.getDotSource(), fileType);
-        gv.writeGraphToFile( img, out );
-        System.out.println(gv.getDotSource());
     }
 
     /**
