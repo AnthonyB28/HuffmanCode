@@ -1,3 +1,4 @@
+package huffman;
 /**
  * Representation of a node in the Huffmantree.
  * @author Anthony Barranco

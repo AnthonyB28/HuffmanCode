@@ -23,7 +23,7 @@
     4: Write tree to output file
     5: write coded data to output file
  */
-
+package huffman;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,12 +43,12 @@ public class Encode
     {
         if(args.length >= 2)
         {
-            if(args[0] == "-c")
+            if(args[0].equals("-c"))
             {
                 String message = ReadFile(args[2]);
                 EncodeToFile(args[3], args[1], true, message);
             }
-            else if(args[0] == "-h")
+            else if(args[0].equals("-h"))
             {
                 String message = ReadFile(args[2]);
                 EncodeToFile(args[3], args[1], false, message);
@@ -65,7 +65,6 @@ public class Encode
             //String message = ReadFile("samples//text//sample7.txt");
             //EncodeToFile("output//outputencode.txt", "output//graphencode.gv", false, message);
         }
-        Decode.main(new String[0]);
     }
 
     /**
@@ -167,7 +166,7 @@ public class Encode
             s.write(Integer.parseInt(encodedMsg.substring(i*8,i*8+8),2));
         }
 
-        System.out.println("Encoded msg: " + encodedMsg.toString());
+        //System.out.println("Encoded msg: " + encodedMsg.toString());
         Files.write(Paths.get(outputFilePath), s.toByteArray());
     }
 
