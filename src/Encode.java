@@ -62,8 +62,8 @@ public class Encode
         else
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
-            String message = ReadFile("samples//text//sample7.txt");
-            EncodeToFile("output//outputencode.txt", "output//graphencode.gv", true, message);
+            //String message = ReadFile("samples//text//sample7.txt");
+            //EncodeToFile("output//outputencode.txt", "output//graphencode.gv", false, message);
         }
         Decode.main(new String[0]);
     }
@@ -118,12 +118,12 @@ public class Encode
             if(canonicalGraphOutput)
             {
                 GraphViz.WriteGraphSource(canonicalGraph, outputGraphFilePath);
-                GraphViz.WriteGraphImageFile(canonicalGraph, outputGraphFilePath + ".png");
+                //GraphViz.WriteGraphImageFile(canonicalGraph, outputGraphFilePath + ".png");
             }
             else
             {
                 GraphViz.WriteGraphSource(nonCanonicalGraph, outputGraphFilePath);
-                GraphViz.WriteGraphImageFile(nonCanonicalGraph, outputGraphFilePath + ".png");
+                //GraphViz.WriteGraphImageFile(nonCanonicalGraph, outputGraphFilePath + "UnCanonical.png");
             }
         }
 
@@ -135,7 +135,7 @@ public class Encode
         for(int i = 0; i < numOfChars; ++i)
         {
             char headerChar = charactersToEncode.get(i).m_Char;
-            s.write((int)headerChar);
+            s.write((int) headerChar);
             s.write(decoder.get(headerChar).length());
         }
 
@@ -144,8 +144,12 @@ public class Encode
         int msgLength = message.length();
         for(int i = 0; i < msgLength; ++i)
         {
-            String encode = decoder.get(message.charAt(i));
-            encodedMsg.append(encode);
+            char letter = message.charAt(i);
+            if(letter != '\r')
+            {
+                String encode = decoder.get(letter);
+                encodedMsg.append(encode);
+            }
         }
 
         // Padding for data
@@ -182,13 +186,12 @@ public class Encode
         for(int i = 0; i < length; ++i)
         {
             char letter = message.charAt(i);
-            if(frequencies.containsKey(letter))
-            {
-                frequencies.put(letter, frequencies.get(letter)+1);
-            }
-            else
-            {
-                frequencies.put(letter, 1);
+            if(letter != '\r') {
+                if (frequencies.containsKey(letter)) {
+                    frequencies.put(letter, frequencies.get(letter) + 1);
+                } else {
+                    frequencies.put(letter, 1);
+                }
             }
         }
 

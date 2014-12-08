@@ -56,8 +56,8 @@ public class Decode
         {
             System.out.println("Please provide sourcefile and targetfile, or optionally sourcefile");
             //byte[] input = ReadFile("samples//encoded//sample9.huf");
-            byte[] input = ReadFile("output//outputencode.txt");
-            DecodeToFile("output//output.txt", "output//graph.gv", input);
+            //byte[] input = ReadFile("output//outputencode.txt");
+            //DecodeToFile("output//output.txt", "output//graph.gv", input);
         }
     }
 
@@ -175,7 +175,7 @@ public class Decode
         if(outputGraphFilePath.length() > 0)
         {
             GraphViz.WriteGraphSource(gv, outputGraphFilePath);
-            GraphViz.WriteGraphImageFile(gv, outputGraphFilePath + ".png");
+            //GraphViz.WriteGraphImageFile(gv, outputGraphFilePath + ".png");
         }
 
         int dataIndex = (numberOfChars*2)+1;
