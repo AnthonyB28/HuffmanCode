@@ -43,12 +43,12 @@ public class Encode
     {
         if(args.length >= 2)
         {
-            if(args[0] == "-c")
+            if(args[0].equals("-c"))
             {
                 String message = ReadFile(args[2]);
                 EncodeToFile(args[3], args[1], true, message);
             }
-            else if(args[0] == "-h")
+            else if(args[0].equals("-h"))
             {
                 String message = ReadFile(args[2]);
                 EncodeToFile(args[3], args[1], false, message);
@@ -65,7 +65,7 @@ public class Encode
             //String message = ReadFile("samples//text//sample7.txt");
             //EncodeToFile("output//outputencode.txt", "output//graphencode.gv", false, message);
         }
-        Decode.main(new String[0]);
+        //Decode.main(new String[0]);
     }
 
     /**

@@ -41,7 +41,7 @@ public class Decode
     {
         if(args.length >= 2)
         {
-            if(args[0] == "-c")
+            if(args[0].equals("-c"))
             {
                 byte[] input2 = ReadFile(args[2]);
                 DecodeToFile(args[3], args[1], input2);

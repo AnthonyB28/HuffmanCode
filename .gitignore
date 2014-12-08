@@ -47,3 +47,5 @@ out/
 *.bak
 *.iml
 test/output.txt
+*.class
+*.txt
